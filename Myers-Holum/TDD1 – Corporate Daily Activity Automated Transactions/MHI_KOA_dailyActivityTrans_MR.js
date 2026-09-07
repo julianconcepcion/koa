@@ -28,6 +28,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
             try {
 
                 runHistId = LIB.createOrUpdateRunHistory('getInput', 'create');
+                //runHistId = 902;
                 log.audit('Get Input - Run History ID', runHistId);
 
                 const CONFIG = LIB.getConfig();
@@ -87,6 +88,21 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         } else {
 
                             log.error('No UC3 Search ID Found');
+                        }
+                    }
+
+                    if (configObj.boolActive_UC4) {
+                        
+                        let uc4SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC4']);
+                        if (uc4SearchId) {
+                            
+                            log.audit('Get Input - UC4 Search ID', uc4SearchId);
+
+                            LIB.getSearchResult(uc4SearchId, ucSeachResultArr, runHistId, 4);
+
+                        } else {
+
+                            log.error('No UC4 Search ID Found');
                         }
                     }
 
@@ -223,35 +239,41 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         
                         log.audit('Reduce - Create JE', 'UC: ' + firstIndexTranLine.ucNum + ' | Key: ' + reduceKey + ' | Originating Sub: ' + fromSub + ' | Camp Ground: ' + campGround + ' | Tran Line Count: ' + reduceValues.length);
 
+                        let result;
+
                         if (firstIndexTranLine.ucNum == 1) {
-                            
-                            let result = LIB.handleUC1_GiftCardRedemptionICJE(reduceKey, reduceValues, mrTaskId);
-                            if (result.status == 'Success') {
+                            result = LIB.handleUC1_GiftCardRedemptionICJE(reduceKey, reduceValues, mrTaskId);
+                        } else if (firstIndexTranLine.ucNum == 3) {
+                            result = LIB.handleUC3_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
+                        } else if (firstIndexTranLine.ucNum == 4) {
+                            result = LIB.handleUC4_handleDonationICJE(reduceKey, reduceValues, mrTaskId);
+                        }
 
-                                reduceContext.write({
-                                    key: reduceKey,
-                                    value: {
-                                        
-                                        status: 'Success',
-                                        srcTranArr: result.srcTranArr,
-                                        jeRecId: result.jeRecId,
-                                        runHistId: result.runHistId
-                                    }
-                                });
+                        if (result.status == 'Success') {
 
-                            } else {
+                            reduceContext.write({
+                                key: reduceKey,
+                                value: {
+                                    
+                                    status: 'Success',
+                                    srcTranArr: result.srcTranArr,
+                                    jeRecId: result.jeRecId,
+                                    runHistId: result.runHistId
+                                }
+                            });
 
-                                reduceContext.write({
-                                    key: 'Failed',
-                                    value: {
-                                        
-                                        status: 'Failed',
-                                        errorMsg: result.errorMsg,
-                                        srcTranArr: result.srcTranArr,
-                                        runHistId: result.runHistId
-                                    }
-                                });
-                            }
+                        } else {
+
+                            reduceContext.write({
+                                key: 'Failed',
+                                value: {
+                                    
+                                    status: 'Failed',
+                                    errorMsg: result.errorMsg,
+                                    srcTranArr: result.srcTranArr,
+                                    runHistId: result.runHistId
+                                }
+                            });
                         }
                     }
 

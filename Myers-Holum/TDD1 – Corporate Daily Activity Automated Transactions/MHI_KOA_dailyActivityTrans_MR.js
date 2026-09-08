@@ -28,7 +28,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
             try {
 
                 runHistId = LIB.createOrUpdateRunHistory('getInput', 'create');
-                //runHistId = 902;
+                //runHistId = 1001;
                 log.audit('Get Input - Run History ID', runHistId);
 
                 const CONFIG = LIB.getConfig();

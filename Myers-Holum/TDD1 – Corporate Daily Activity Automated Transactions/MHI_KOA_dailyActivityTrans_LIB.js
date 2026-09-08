@@ -34,7 +34,9 @@ define(['N/search', 'N/record', 'N/runtime'],
                     search.createColumn({name: "custrecord_mhi_koa_dact_bev_sales_active", label: "Beverage Sales — Active"}),
                     search.createColumn({name: "custrecord_mhi_koa_dact_concess_active", label: "Concession Fee — Active"}),
                     search.createColumn({name: "custrecord_mhi_koa_ic_ap", label: "Intercompany Accounts Payable"}),
-                    search.createColumn({name: "custrecord_mhi_koa_ic_ar", label: "Intercompany Accounts Receivable"})
+                    search.createColumn({name: "custrecord_mhi_koa_ic_ar", label: "Intercompany Accounts Receivable"}),
+                    search.createColumn({name: "custrecord_mhi_koa_dact_rewards_pct", label: "Rewards Membership Split %"})
+                    
                 ]
             });
 
@@ -57,6 +59,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                     configObj.boolActive_UC7 = result.getValue(atcSearchCols[6]);
                     configObj.icApAccntId = result.getValue(atcSearchCols[7]);
                     configObj.icArAccntId = result.getValue(atcSearchCols[8]);
+                    configObj.rMembershipSplitPercent = result.getValue(atcSearchCols[9]);
 
                     return true;
                 });
@@ -448,6 +451,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                 runHistId = tranLine.runHistId;
             }
 
+            log.debug('Reduce - Grouped Keys Amounts', 'Total Amount: ' + totalAmt);
+
             try {
 
                 //Get GL settings associated with the use case
@@ -526,6 +531,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         entity: fromSubEntityId
                                     }
                                 ];
+                                
+                                log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
                                 let jeResult = createJE(jeHeader, jeLinesArr);
@@ -626,6 +633,11 @@ define(['N/search', 'N/record', 'N/runtime'],
             const CONFIG = getConfig();
             let configObj = CONFIG.configObj;
             let glSettings = CONFIG.glSettings;
+
+            let rMembershipSplitPercent = configObj.rMembershipSplitPercent;
+                rMembershipSplitPercent = (rMembershipSplitPercent) ? parseFloat(rMembershipSplitPercent.replace('%', '')) / 100 : null;
+
+            let ucGLsettings = glSettings['UC3'];
             
             let fromSubId;
             let campGroundId;
@@ -647,24 +659,26 @@ define(['N/search', 'N/record', 'N/runtime'],
                 campGroundId = getValue(tranLine, 'line.cseg_koa_cpg', false);
                 deptId = getValue(tranLine, 'departmentnohierarchy', false);
 
-                let lineMemo = getValue(tranLine, 'memo', false);
-                log.audit('lineMemo', lineMemo);
+                let origSubGLsetting = ucGLsettings.find(setting => setting.origSubId == fromSubId);
+                let defRevAccntId = origSubGLsetting.defRevAccntId;
+                let rLiabilityAccntId = origSubGLsetting.rLiabilityAccntId;
 
-                //Get total amount
-                let amt = getValue(tranLine, 'formulacurrency', false);
-                    amt = (amt) ? parseFloat(amt) : 0.00;
+                //Get total rewards redemption and membership sales amount
+                let accountId = getValue(tranLine, 'account', false);
+                let debitAmt = getValue(tranLine, 'debitamount', false);
+                    debitAmt = (debitAmt) ? parseFloat(debitAmt) : 0.00;
+                let creditAmt = getValue(tranLine, 'creditamount', false);
+                    creditAmt = (creditAmt) ? parseFloat(creditAmt) : 0.00;
 
-                if (lineMemo == 'Rewards Memberships & Renewals') {
+                if (creditAmt > 0 && accountId == defRevAccntId) {
                     
-                    amt = amt * 0.5;
-                    totalMembershipSalesAmt = totalMembershipSalesAmt + amt;
+                    creditAmt = creditAmt * rMembershipSplitPercent;
+                    totalMembershipSalesAmt = totalMembershipSalesAmt + creditAmt;
+                
+                } else if (debitAmt > 0 && accountId == rLiabilityAccntId) {
 
-                } else if (lineMemo == 'Rewards Redemptions') {
-
-                    totalRewardsRedemptionAmt = totalRewardsRedemptionAmt + amt;
+                    totalRewardsRedemptionAmt = totalRewardsRedemptionAmt + debitAmt;
                 }
-
-                //totalAmt = totalAmt + amt;
 
                 //Get unique source tran IDs
                 let srcTranId = tranLine.id;
@@ -682,8 +696,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                 runHistId = tranLine.runHistId;
             }
 
-            log.audit('test', 'totalMembershipSalesAmt: ' + totalMembershipSalesAmt + ' | totalRewardsRedemptionAmt: ' + totalRewardsRedemptionAmt);
-            return;
+            log.debug('Reduce - Grouped Keys Amounts', 'Total Membership Sales: ' + totalMembershipSalesAmt + ' | Total Rewards Redemption: ' + totalRewardsRedemptionAmt);
 
             try {
 
@@ -716,7 +729,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                             
                             let destSubEntityMatch = entitiesArr.find(e => e.repSubId == destSubId);
                             let destSubEntityId = destSubEntityMatch ? destSubEntityMatch.entityId : null;
-                            log.audit('Reduce - Entities Found', 'Originating Sub: ' + fromSubEntityId + ' | Destination Sub: ' + destSubEntityId);
+                            log.debug('Reduce - Entities Found', 'Originating Sub: ' + fromSubEntityId + ' | Destination Sub: ' + destSubEntityId);
 
                             if (fromSubEntityId && destSubEntityId) {
 
@@ -726,14 +739,14 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
-                                    
+                                 
                                 //Define JE line data
                                 let jeLinesArr = [
 
                                     {//Originating Sub Deferred Revenue Line
                                         linesubsidiary: fromSubId,
                                         account: defRevAccntId,
-                                        debit: totalAmt,
+                                        debit: totalMembershipSalesAmt,
                                         description: 'Rewards Membership Sales (Percentage %)',
                                         cseg_koa_cpg: campGroundId,
                                         entity: destSubEntityId
@@ -741,7 +754,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     {//Originating Sub Rewards Liability Line
                                         linesubsidiary: fromSubId,
                                         account: rLiabilityAccntId,
-                                        credit: totalAmt,
+                                        credit: totalRewardsRedemptionAmt,
                                         description: 'Rewards Redemptions',
                                         cseg_koa_cpg: campGroundId,
                                         entity: destSubEntityId
@@ -749,7 +762,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     {//Originating Sub A/R Line
                                         linesubsidiary: fromSubId,
                                         account: icArAccntId,
-                                        debit: totalAmt,
+                                        credit: (totalMembershipSalesAmt - totalRewardsRedemptionAmt),
                                         description: 'Rewards Membership Sales (Percentage %) & Redemptions (Netted)',
                                         cseg_koa_cpg: campGroundId,
                                         entity: destSubEntityId
@@ -757,7 +770,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     {//Destination Sub A/P Line
                                         linesubsidiary: destSubId,
                                         account: icApAccntId,
-                                        debit: totalAmt,
+                                        debit: (totalMembershipSalesAmt - totalRewardsRedemptionAmt),
                                         description: 'Rewards Membership Sales (Percentage %) & Redemptions (Netted)',
                                         cseg_koa_cpg: destCpgId,
                                         entity: fromSubEntityId
@@ -765,7 +778,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     {//Destination Sub Rewards Liability Line
                                         linesubsidiary: destSubId,
                                         account: rLiabilityAccntId,
-                                        debit: totalAmt,
+                                        debit: totalRewardsRedemptionAmt,
                                         description: 'Rewards Redemptions',
                                         cseg_koa_cpg: destCpgId,
                                         entity: fromSubEntityId
@@ -773,14 +786,14 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     {//Destination Sub Deferred Revenue Line
                                         linesubsidiary: destSubId,
                                         account: defRevAccntId,
-                                        credit: totalAmt,
+                                        credit: totalMembershipSalesAmt,
                                         description: 'Rewards Membership Sales (Percentage %)',
                                         cseg_koa_cpg: destCpgId,
                                         entity: fromSubEntityId
                                     },
                                 ];
 
-                                log.audit('jeLinesArr', jeLinesArr);
+                                log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
                                 let jeResult = createJE(jeHeader, jeLinesArr);
@@ -799,7 +812,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                                 type: 'journalentry',
                                                 id: srcTranId,
                                                 values: {
-                                                    custbody_mhi_koa_giftcard_ic_je: jeResult.jeRecId
+                                                    custbody_mhi_koa_rewards_ic_je: jeResult.jeRecId
                                                 }
                                             });
                                         }
@@ -923,6 +936,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                 runHistId = tranLine.runHistId;
             }
 
+            log.debug('Reduce - Grouped Keys Amounts', 'Total Amount: ' + totalAmt);
+
             try {
 
                 //Get GL settings associated with the use case
@@ -1001,6 +1016,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         entity: fromSubEntityId
                                     }
                                 ];
+
+                                log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
                                 let jeResult = createJE(jeHeader, jeLinesArr);

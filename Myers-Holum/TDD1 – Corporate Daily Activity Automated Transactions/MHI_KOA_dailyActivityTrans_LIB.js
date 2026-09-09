@@ -35,7 +35,9 @@ define(['N/search', 'N/record', 'N/runtime'],
                     search.createColumn({name: "custrecord_mhi_koa_dact_concess_active", label: "Concession Fee — Active"}),
                     search.createColumn({name: "custrecord_mhi_koa_ic_ap", label: "Intercompany Accounts Payable"}),
                     search.createColumn({name: "custrecord_mhi_koa_ic_ar", label: "Intercompany Accounts Receivable"}),
-                    search.createColumn({name: "custrecord_mhi_koa_dact_rewards_pct", label: "Rewards Membership Split %"})
+                    search.createColumn({name: "custrecord_mhi_koa_dact_rewards_pct", label: "Rewards Membership Split %"}),
+                    search.createColumn({name: "custrecord_mhi_koa_fract_rewards_active", label: "Franchise Rewards Redemption — Active"})
+                    
                     
                 ]
             });
@@ -60,6 +62,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                     configObj.icApAccntId = result.getValue(atcSearchCols[7]);
                     configObj.icArAccntId = result.getValue(atcSearchCols[8]);
                     configObj.rMembershipSplitPercent = result.getValue(atcSearchCols[9]);
+                    configObj.boolActive_TDD2_UC2 = result.getValue(atcSearchCols[10]);
 
                     return true;
                 });
@@ -116,6 +119,10 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 ucNum = 'UC3';
                             } else if (useCaseText.includes('TDD1 - UC4')) {
                                 ucNum = 'UC4';
+                            }
+
+                            else if (useCaseText.includes('TDD2 - UC2')) {
+                                ucNum = 'TDD2_UC2';
                             }
 
                             log.debug('Get Input - GL Settings UC Mapping', 'GL Settings ID: ' + glSettingId + ' | GL Settings UC Text: ' + useCaseText + ' | UC Num: ' + ucNum);
@@ -179,7 +186,9 @@ define(['N/search', 'N/record', 'N/runtime'],
                 UC4: 'custscript_atc_uc4_search_id',
                 UC5: 'custscript_atc_uc5_search_id',
                 UC6: 'custscript_atc_uc6_search_id',
-                UC7: 'custscript_atc_uc7_search_id'
+                UC7: 'custscript_atc_uc7_search_id',
+
+                TDD_UC2: 'custscript_atc_tdd2_uc2_search_id',
             }
         }
 
@@ -305,6 +314,18 @@ define(['N/search', 'N/record', 'N/runtime'],
                 }
                 
             } else if (ucNum == 4) {
+
+                let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
+                let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
+                let deptId = getValue(mapValuesParsed, 'departmentnohierarchy', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId}`);
+
+                if (fromSubId && campGroundId) {
+                    
+                    key = `${fromSubId}_${campGroundId}`;
+                }
+                
+            } else if (ucNum == '2_2') {
 
                 let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
                 let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
@@ -621,7 +642,7 @@ define(['N/search', 'N/record', 'N/runtime'],
         }
 
         /**
-         * Function to handle UC1 Gift Card Redemption Intercompany Journal Entry
+         * Function to handle UC3 OAK 102 / KOA 005 Rewards Redemptions IC Journal Intercompany Journal Entry
          * @param {String} reduceKey - reduce key
          * @param {Array} reduceValues - Array of reduced values for UC1 Gift Card Redemption
          * @param {String} mrTaskId - The ID of the current map/reduce task
@@ -1106,6 +1127,230 @@ define(['N/search', 'N/record', 'N/runtime'],
         }
 
         /**
+         * Function to handle TDD2 UC2 Gift Card Redemption Intercompany Journal Entry
+         * @param {String} reduceKey - reduce key
+         * @param {Array} reduceValues - Array of reduced values for UC1 Gift Card Redemption
+         * @param {String} mrTaskId - The ID of the current map/reduce task
+         * 
+         * @returns {Object} - Object containing the status, JE record ID, source transaction array, and run history ID
+         */
+        const handleTDD2UC2_RewardsRedemptionICJE = (reduceKey, reduceValues, mrTaskId) => {
+
+            const CONFIG = getConfig();
+            let configObj = CONFIG.configObj;
+            let glSettings = CONFIG.glSettings;
+            
+            let fromSubId;
+            let campGroundId;
+            let deptId;
+            let runHistId;
+
+            let srcTranArr = [];
+            let srcTranLinkeyArr = [];
+            let totalAmt = 0.00;
+            
+            //Loop through grouped transaction lines
+            for (let x = 0; x < reduceValues.length; x++) {
+                
+                let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                fromSubId = getValue(tranLine, 'subsidiarynohierarchy', false);
+                campGroundId = getValue(tranLine, 'line.cseg_koa_cpg', false);
+                deptId = getValue(tranLine, 'departmentnohierarchy', false);
+
+                //Get total amount
+                let amt = getValue(tranLine, 'amount', false);
+                    amt = (amt) ? Math.abs(parseFloat(amt)) : 0.00;
+
+                totalAmt = totalAmt + amt;
+
+                //Get unique source tran IDs
+                let srcTranId = tranLine.id;
+                if (!srcTranArr.includes(srcTranId)) {
+                    srcTranArr.push(srcTranId);
+                }
+
+                //Get unique source tran IDs and line unique keys. For error messaging purposes
+                let srcTranLineId = tranLine.lineuniquekey.value;
+                let tranLineUniqueKey = `${srcTranId}_${srcTranLineId}`;
+                if (!srcTranLinkeyArr.includes(tranLineUniqueKey)) {
+                    srcTranLinkeyArr.push(tranLineUniqueKey);
+                }
+
+                runHistId = tranLine.runHistId;
+            }
+
+            log.debug('Reduce - Grouped Keys Amounts', 'Total Amount: ' + totalAmt);
+
+            try {
+
+                //Get GL settings associated with the use case
+                let ucGLsettings = glSettings['TDD2_UC2'];
+                if (ucGLsettings) {
+
+                    //Get GL setting for the specific originating subsidiary
+                    let origSubGLsetting = ucGLsettings.find(setting => setting.origSubId == fromSubId);
+                    if (origSubGLsetting) {
+
+                        let destSubId = origSubGLsetting.destSubId;
+                        let destCpgId = origSubGLsetting.destCpgId;
+                        let destDeptId = origSubGLsetting.destDeptId;
+                        let gcClearingAccntId = origSubGLsetting.gcClearingAccntId;
+                        let gcLiabilityAccntId = origSubGLsetting.gcLiabilityAccntId;
+
+                        let icApAccntId = configObj.icApAccntId;
+                        let icArAccntId = configObj.icArAccntId;
+
+                        log.debug('Reduce - GL Settings', 'Destination Sub ID: ' + destSubId + ' | Dest. Campground ID: ' + destCpgId + ' | Clearing Accnt ID: ' + gcClearingAccntId + ' | Liability Accnt ID: ' + gcLiabilityAccntId + ' | IC AP Account ID: ' + icApAccntId + ' | IC AR Account ID: ' + icArAccntId);
+
+                        if (destSubId && destCpgId && gcClearingAccntId && gcLiabilityAccntId && icApAccntId && icArAccntId) {
+
+                            //Find entities to be used on elimination line accounts
+                            let entitiesArr = getEntities(fromSubId, destSubId);
+
+                            let fromSubEntityMatch = entitiesArr.find(e => e.repSubId == fromSubId);
+                            let fromSubEntityId = fromSubEntityMatch ? fromSubEntityMatch.entityId : null;
+                            
+                            let destSubEntityMatch = entitiesArr.find(e => e.repSubId == destSubId);
+                            let destSubEntityId = destSubEntityMatch ? destSubEntityMatch.entityId : null;
+                            log.debug('Reduce - Entities Found', 'Originating Sub: ' + fromSubEntityId + ' | Destination Sub: ' + destSubEntityId);
+
+                            if (fromSubEntityId && destSubEntityId) {
+
+                                //Define JE header data
+                                let jeHeader = {};
+                                    jeHeader.subsidiary = fromSubId;
+                                    jeHeader.custbody_mhi_koa_run_id = mrTaskId;
+                                    jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
+                                    jeHeader.custbody_mhi_koa_run_hist = runHistId;
+                                    
+                                //Define JE line data
+                                let jeLinesArr = [
+
+                                    {//Gift Card Clearing Line
+                                        linesubsidiary: fromSubId,
+                                        account: gcClearingAccntId,
+                                        credit: totalAmt,
+                                        memo: 'Gift Card Redemption',
+                                        cseg_koa_cpg: campGroundId,
+                                        entity: destSubEntityId
+                                    },
+                                    {//IC A/R Line
+                                        linesubsidiary: fromSubId,
+                                        account: icArAccntId,
+                                        debit: totalAmt,
+                                        memo: '',
+                                        cseg_koa_cpg: campGroundId,
+                                        entity: destSubEntityId
+                                    },
+                                    {//IC A/P Line
+                                        linesubsidiary: destSubId,
+                                        account: icApAccntId,
+                                        credit: totalAmt,
+                                        memo: '',
+                                        cseg_koa_cpg: destCpgId,
+                                        entity: fromSubEntityId
+                                    },
+                                    {//Gift Card Liability Line
+                                        linesubsidiary: destSubId,
+                                        account: gcLiabilityAccntId,
+                                        debit: totalAmt,
+                                        memo: 'Gift Card Redemption',
+                                        cseg_koa_cpg: destCpgId,
+                                        entity: fromSubEntityId
+                                    }
+                                ];
+                                
+                                log.debug('Reduce - JE Lines', jeLinesArr);
+
+                                //Create JE
+                                let jeResult = createJE(jeHeader, jeLinesArr);
+                                if (jeResult.status == 'Success') {
+
+                                    log.audit('Reduce - Created JE ID', jeResult.jeRecId);
+
+                                    if (jeResult.jeRecId) {
+                                        
+                                        //Update the source transactions with the created JE ID
+                                        for (let x = 0; x < srcTranArr.length; x++) {
+
+                                            let srcTranId = srcTranArr[x];
+
+                                            record.submitFields({
+                                                type: 'invoice',
+                                                id: srcTranId,
+                                                values: {
+                                                    custbody_mhi_koa_royalty_rewards_ic_je: jeResult.jeRecId
+                                                }
+                                            });
+                                        }
+
+                                        return {
+
+                                            status: 'Success',
+                                            jeRecId: jeResult.jeRecId,
+                                            srcTranArr,
+                                            runHistId
+                                        }
+                                    }
+
+                                } else {
+
+                                    //let errorMsg = `Reduce Error: ${jeResult.errorMsg} | Source Tran + Line Keys: ${srcTranLinkeyArr.join(', ')}`;
+                                    let errorMsg = `Reduce Error: ${jeResult.errorMsg} | Key: ${reduceKey}`;
+
+                                    log.error('Reduce - JE Creation Error', errorMsg);
+
+                                    return {
+
+                                        status: 'Failed',
+                                        errorMsg,
+                                        srcTranArr,
+                                        runHistId
+                                    }
+                                }
+
+                            } else {
+
+                                throw new Error("Missing representing entities.");
+
+                            }
+
+                        } else {
+
+                            throw new Error("Missing data required to proceed with JE data preparation.");
+
+                        }
+
+                    } else {
+
+                        throw new Error("No GL Settings found for TDD2 UC2's originating subsidiary.");
+                    }
+
+                } else {
+
+                    throw new Error('No GL Settings found for TDD2 UC2.');
+                }
+
+            } catch (error) {
+
+                //let errorMsg = `Reduce Error: ${error.message} | Source Tran + Line Keys: ${srcTranLinkeyArr.join(', ')}`;
+                let errorMsg = `Reduce Error: ${error.message} | Key: ${reduceKey}`;
+
+                log.error('Reduce - JE Data Preparation Error', errorMsg);
+
+                return {
+
+                    status: 'Failed',
+                    errorMsg,
+                    srcTranArr,
+                    runHistId
+                }
+            }
+        }
+
+        /**
          * Function to get IC entities to be used on elim line accounts
          * @param {Number} fromSubId - originating subsidiary internal id
          * @param {Number} destSubId - destination subsidiary internal id
@@ -1327,6 +1572,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             handleUC1_GiftCardRedemptionICJE,
             handleUC3_RewardsRedemptionICJE,
             handleUC4_handleDonationICJE,
+            handleTDD2UC2_RewardsRedemptionICJE,
             createOrUpdateRunHistory
         }
 

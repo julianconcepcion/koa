@@ -28,7 +28,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
             try {
 
                 runHistId = LIB.createOrUpdateRunHistory('getInput', 'create');
-                //runHistId = 1001;
+                //runHistId = 1103;
                 log.audit('Get Input - Run History ID', runHistId);
 
                 const CONFIG = LIB.getConfig();
@@ -103,6 +103,22 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         } else {
 
                             log.error('No UC4 Search ID Found');
+                        }
+                    }
+
+                    //Special requirement added from TDD2
+                    if (configObj.boolActive_TDD2_UC2) {
+                        
+                        let tdd2UC2SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['TDD_UC2']);
+                        if (tdd2UC2SearchId) {
+                            
+                            log.audit('Get Input - TDD2 UC2 Search ID', tdd2UC2SearchId);
+
+                            LIB.getSearchResult(tdd2UC2SearchId, ucSeachResultArr, runHistId, '2_2');
+
+                        } else {
+
+                            log.error('No TDD 2 UC2 Search ID Found');
                         }
                     }
 
@@ -231,7 +247,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                     let firstIndex = JSON.parse(reduceValues[0]); 
                     let firstIndexTranLine = JSON.parse(firstIndex.tranLine);
 
-                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4) {
+                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == '2_2') {
                         
                         let fromSub = LIB.getValue(firstIndexTranLine, 'subsidiarynohierarchy', true);
                         let campGround = LIB.getValue(firstIndexTranLine, 'line.cseg_koa_cpg', true);
@@ -247,6 +263,8 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                             result = LIB.handleUC3_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
                         } else if (firstIndexTranLine.ucNum == 4) {
                             result = LIB.handleUC4_handleDonationICJE(reduceKey, reduceValues, mrTaskId);
+                        } else if (firstIndexTranLine.ucNum == '2_2') {
+                            result = LIB.handleTDD2UC2_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
                         }
 
                         if (result.status == 'Success') {

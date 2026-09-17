@@ -525,7 +525,6 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         credit: totalAmt,
                                         memo: 'Gift Card Redemption',
                                         cseg_koa_cpg: campGroundId,
-                                        entity: destSubEntityId
                                     },
                                     {//IC A/R Line
                                         linesubsidiary: fromSubId,
@@ -549,7 +548,6 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         debit: totalAmt,
                                         memo: 'Gift Card Redemption',
                                         cseg_koa_cpg: destCpgId,
-                                        entity: fromSubEntityId
                                     }
                                 ];
                                 
@@ -769,16 +767,14 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         account: defRevAccntId,
                                         debit: totalMembershipSalesAmt,
                                         memo: `Rewards Membership Sales (${rMembershipSplitPercentText})`,
-                                        cseg_koa_cpg: campGroundId,
-                                        entity: destSubEntityId
+                                        cseg_koa_cpg: campGroundId
                                     },
                                     {//Originating Sub Rewards Liability Line
                                         linesubsidiary: fromSubId,
                                         account: rLiabilityAccntId,
                                         credit: totalRewardsRedemptionAmt,
                                         memo: 'Rewards Redemptions',
-                                        cseg_koa_cpg: campGroundId,
-                                        entity: destSubEntityId
+                                        cseg_koa_cpg: campGroundId
                                     },
                                     {//Originating Sub A/R Line
                                         linesubsidiary: fromSubId,
@@ -801,16 +797,14 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         account: rLiabilityAccntId,
                                         debit: totalRewardsRedemptionAmt,
                                         memo: 'Rewards Redemptions',
-                                        cseg_koa_cpg: destCpgId,
-                                        entity: fromSubEntityId
+                                        cseg_koa_cpg: destCpgId
                                     },
                                     {//Destination Sub Deferred Revenue Line
                                         linesubsidiary: destSubId,
                                         account: defRevAccntId,
                                         credit: totalMembershipSalesAmt,
                                         memo: `Rewards Membership Sales (${rMembershipSplitPercentText})`,
-                                        cseg_koa_cpg: destCpgId,
-                                        entity: fromSubEntityId
+                                        cseg_koa_cpg: destCpgId
                                     },
                                 ];
 
@@ -1009,8 +1003,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         account: donationsClearingAccntId,
                                         debit: totalAmt,
                                         memo: 'Round ups and fundraisers',
-                                        cseg_koa_cpg: campGroundId,
-                                        entity: destSubEntityId
+                                        cseg_koa_cpg: campGroundId
                                     },
                                     {//IC A/R Line
                                         linesubsidiary: fromSubId,
@@ -1033,8 +1026,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         account: donationsClearingAccntId,
                                         credit: totalAmt,
                                         memo: 'Round ups and fundraisers',
-                                        cseg_koa_cpg: destCpgId,
-                                        entity: fromSubEntityId
+                                        cseg_koa_cpg: destCpgId
                                     }
                                 ];
 
@@ -1233,8 +1225,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         account: gcClearingAccntId,
                                         credit: totalAmt,
                                         memo: 'Gift Card Redemption',
-                                        cseg_koa_cpg: campGroundId,
-                                        entity: destSubEntityId
+                                        cseg_koa_cpg: campGroundId
                                     },
                                     {//IC A/R Line
                                         linesubsidiary: fromSubId,
@@ -1257,8 +1248,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         account: gcLiabilityAccntId,
                                         debit: totalAmt,
                                         memo: 'Gift Card Redemption',
-                                        cseg_koa_cpg: destCpgId,
-                                        entity: fromSubEntityId
+                                        cseg_koa_cpg: destCpgId
                                     }
                                 ];
                                 

@@ -63,7 +63,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
 
                     if (configObj.boolActive_UC2) {
                         
-                        let uc2SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC2']);
+                        /* let uc2SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC2']);
                         if (uc2SearchId) {
                             
                             log.audit('Get Input - UC2 Search ID', uc2SearchId);
@@ -73,7 +73,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         } else {
 
                             log.error('No UC2 Search ID Found');
-                        }
+                        } */
                     }
 
                     if (configObj.boolActive_UC3) {

@@ -293,48 +293,48 @@ define(['N/search', 'N/record', 'N/runtime'],
                 
                 let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
                 let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
-                let deptId = getValue(mapValuesParsed, 'departmentnohierarchy', false);
-                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId}`);
+                let date = getValue(mapValuesParsed, 'trandate', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date}`);
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}`;
+                    key = `${fromSubId}_${campGroundId}_${date}`;
                 }
 
             } else if (ucNum == 3) {
 
                 let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
                 let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
-                let deptId = getValue(mapValuesParsed, 'departmentnohierarchy', false);
-                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId}`);
+                let date = getValue(mapValuesParsed, 'trandate', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date}`);
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}`;
+                    key = `${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             } else if (ucNum == 4) {
 
                 let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
                 let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
-                let deptId = getValue(mapValuesParsed, 'departmentnohierarchy', false);
-                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId}`);
+                let date = getValue(mapValuesParsed, 'trandate', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date}`);
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}`;
+                    key = `${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             } else if (ucNum == '2_2') {
 
                 let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
                 let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
-                let deptId = getValue(mapValuesParsed, 'departmentnohierarchy', false);
-                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId}`);
+                let date = getValue(mapValuesParsed, 'trandate', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date}`);
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}`;
+                    key = `${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             }
@@ -433,8 +433,8 @@ define(['N/search', 'N/record', 'N/runtime'],
             
             let fromSubId;
             let campGroundId;
-            let deptId;
             let runHistId;
+            let tranDate;
 
             let srcTranArr = [];
             let srcTranLinkeyArr = [];
@@ -448,7 +448,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 fromSubId = getValue(tranLine, 'subsidiarynohierarchy', false);
                 campGroundId = getValue(tranLine, 'line.cseg_koa_cpg', false);
-                deptId = getValue(tranLine, 'departmentnohierarchy', false);
+                tranDate = getValue(tranLine, 'trandate', false);
 
                 //Get total amount
                 let amt = getValue(tranLine, 'amount', false);
@@ -512,6 +512,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 //Define JE header data
                                 let jeHeader = {};
                                     jeHeader.subsidiary = fromSubId;
+                                    jeHeader.trandate = new Date(tranDate);
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
@@ -660,7 +661,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             
             let fromSubId;
             let campGroundId;
-            let deptId;
+            let tranDate;
             let runHistId;
 
             let srcTranArr = [];
@@ -676,7 +677,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 fromSubId = getValue(tranLine, 'subsidiarynohierarchy', false);
                 campGroundId = getValue(tranLine, 'line.cseg_koa_cpg', false);
-                deptId = getValue(tranLine, 'departmentnohierarchy', false);
+                tranDate = getValue(tranLine, 'trandate', false);
 
                 let origSubGLsetting = ucGLsettings.find(setting => setting.origSubId == fromSubId);
                 let defRevAccntId = origSubGLsetting.defRevAccntId;
@@ -755,6 +756,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 //Define JE header data
                                 let jeHeader = {};
                                     jeHeader.subsidiary = fromSubId;
+                                    jeHeader.trandate = new Date(tranDate);
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
@@ -912,7 +914,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             
             let fromSubId;
             let campGroundId;
-            let deptId;
+            let tranDate;
             let runHistId;
 
             let srcTranArr = [];
@@ -927,7 +929,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 fromSubId = getValue(tranLine, 'subsidiarynohierarchy', false);
                 campGroundId = getValue(tranLine, 'line.cseg_koa_cpg', false);
-                deptId = getValue(tranLine, 'departmentnohierarchy', false);
+                tranDate = getValue(tranLine, 'trandate', false);
 
                 //Get total amount
                 let amt = getValue(tranLine, 'formulacurrency', false);
@@ -991,6 +993,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 //Define JE header data
                                 let jeHeader = {};
                                     jeHeader.subsidiary = fromSubId;
+                                    jeHeader.trandate = new Date(tranDate);
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
@@ -1134,7 +1137,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             
             let fromSubId;
             let campGroundId;
-            let deptId;
+            let tranDate;
             let runHistId;
 
             let srcTranArr = [];
@@ -1149,7 +1152,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 fromSubId = getValue(tranLine, 'subsidiarynohierarchy', false);
                 campGroundId = getValue(tranLine, 'line.cseg_koa_cpg', false);
-                deptId = getValue(tranLine, 'departmentnohierarchy', false);
+                tranDate = getValue(tranLine, 'trandate', false);
 
                 //Get total amount
                 let amt = getValue(tranLine, 'amount', false);
@@ -1213,10 +1216,11 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 //Define JE header data
                                 let jeHeader = {};
                                     jeHeader.subsidiary = fromSubId;
+                                    jeHeader.trandate = new Date(tranDate);
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
-                                    
+
                                 //Define JE line data
                                 let jeLinesArr = [
 

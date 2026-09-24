@@ -28,7 +28,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
             try {
 
                 runHistId = LIB.createOrUpdateRunHistory('getInput', 'create');
-                //runHistId = 1418;
+                //runHistId = 1508;
                 log.audit('Get Input - Run History ID', runHistId);
 
                 const CONFIG = LIB.getConfig();
@@ -111,9 +111,24 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         let uc6SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC6']);
                         if (uc6SearchId) {
                             
-                            log.debug('Get Input - UC4 Search ID', uc6SearchId);
+                            log.debug('Get Input - UC6 Search ID', uc6SearchId);
 
                             LIB.getSearchResult(uc6SearchId, ucSeachResultArr, runHistId, 6);
+
+                        } else {
+
+                            log.error('No UC4 Search ID Found');
+                        }
+                    }
+
+                    if (configObj.boolActive_UC7) {
+                        
+                        let uc7SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC7']);
+                        if (uc7SearchId) {
+                            
+                            log.debug('Get Input - UC7 Search ID', uc7SearchId);
+
+                            LIB.getSearchResult(uc7SearchId, ucSeachResultArr, runHistId, 7);
 
                         } else {
 
@@ -262,7 +277,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                     let firstIndex = JSON.parse(reduceValues[0]); 
                     let firstIndexTranLine = JSON.parse(firstIndex.tranLine);
 
-                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == 6 || firstIndexTranLine.ucNum == '2_2') {
+                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == 6 || firstIndexTranLine.ucNum == 7 || firstIndexTranLine.ucNum == '2_2') {
                         
                         let fromSub = LIB.getValue(firstIndexTranLine, 'subsidiarynohierarchy', true);
                         let campGround = LIB.getValue(firstIndexTranLine, 'line.cseg_koa_cpg', true);
@@ -280,6 +295,8 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                             result = LIB.handleUC4_handleDonationICJE(reduceKey, reduceValues, mrTaskId);
                         } else if (firstIndexTranLine.ucNum == 6) {
                             result = LIB.handleUC6_handleBeverageSalesInvBillPair(reduceKey, reduceValues, mrTaskId);
+                        } else if (firstIndexTranLine.ucNum == 7) {
+                            result = LIB.handleUC7_handleConcessionFeeInvBillPair(reduceKey, reduceValues, mrTaskId);
                         } else if (firstIndexTranLine.ucNum == '2_2') {
                             result = LIB.handleTDD2UC2_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
                         }

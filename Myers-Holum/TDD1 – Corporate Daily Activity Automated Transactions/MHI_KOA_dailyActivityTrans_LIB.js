@@ -94,7 +94,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                             search.createColumn({name: "custrecord_mhi_koa_txn_gl_def_rev", label: "Deferred Revenue"}),
                             search.createColumn({name: "custrecord_mhi_koa_txn_gl_rwd_liability", label: "Rewards Liability"}),
                             search.createColumn({name: "custrecord_mhi_koa_txn_gl_don_clg", label: "Donations Clearing"}),
-                            search.createColumn({name: "custrecord_mhi_koa_txn_gl_item", label: "Item"})
+                            search.createColumn({name: "custrecord_mhi_koa_txn_gl_item", label: "Item"}),
+                            search.createColumn({name: "custrecord_mhi_koa_txn_gl_cont_exp", label: "Expense"})
                         ]
                     });
 
@@ -122,6 +123,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 ucNum = 'UC4';
                             } else if (useCaseText.includes('TDD1 - UC6')) {
                                 ucNum = 'UC6';
+                            } else if (useCaseText.includes('TDD1 - UC7')) {
+                                ucNum = 'UC7';
                             }
 
                             else if (useCaseText.includes('TDD2 - UC2')) {
@@ -140,6 +143,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                             let rLiabilityAccntId = result.getValue(glSettingSearchCols[8]);
                             let donationsClearingAccntId = result.getValue(glSettingSearchCols[9]);
                             let invoiceItemId = result.getValue(glSettingSearchCols[10]);
+                            let expenseItemId = result.getValue(glSettingSearchCols[11]);
 
                             if (ucNum) {
 
@@ -154,7 +158,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     defRevAccntId,
                                     rLiabilityAccntId,
                                     donationsClearingAccntId,
-                                    invoiceItemId
+                                    invoiceItemId,
+                                    expenseItemId
                                 });
                             }
 
@@ -303,7 +308,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}_${date}`;
+                    key = `${ucNum}_${fromSubId}_${campGroundId}_${date}`;
                 }
 
             } else if (ucNum == 3) {
@@ -315,7 +320,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}_${date}`;
+                    key = `${ucNum}_${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             } else if (ucNum == 4) {
@@ -327,7 +332,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}_${date}`;
+                    key = `${ucNum}_${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             } else if (ucNum == 6) {
@@ -340,7 +345,20 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}_${date}`;
+                    key = `${ucNum}_${fromSubId}_${campGroundId}_${date}`;
+                }
+                
+            } else if (ucNum == 7) {
+
+                let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
+                let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
+                let date = getValue(mapValuesParsed, 'trandate', false);
+                let accountId = getValue(mapValuesParsed, 'account', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date} | Account: ${accountId}`);
+
+                if (fromSubId && campGroundId) {
+                    
+                    key = `${ucNum}_${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             } else if (ucNum == '2_2') {
@@ -352,7 +370,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 if (fromSubId && campGroundId) {
                     
-                    key = `${fromSubId}_${campGroundId}_${date}`;
+                    key = `${ucNum}_${fromSubId}_${campGroundId}_${date}`;
                 }
                 
             }
@@ -573,7 +591,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
-                                let jeResult = createJE(jeHeader, jeLinesArr);
+                                let jeResult = createJE(jeHeader, jeLinesArr, 1);
                                 if (jeResult.status == 'Success') {
 
                                     log.audit('Reduce - Created JE ID', jeResult.jeRecId);
@@ -831,7 +849,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
-                                let jeResult = createJE(jeHeader, jeLinesArr);
+                                let jeResult = createJE(jeHeader, jeLinesArr, 3);
                                 if (jeResult.status == 'Success') {
 
                                     log.audit('Reduce - Created JE ID', jeResult.jeRecId);
@@ -1053,7 +1071,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
-                                let jeResult = createJE(jeHeader, jeLinesArr);
+                                let jeResult = createJE(jeHeader, jeLinesArr, 4);
                                 if (jeResult.status == 'Success') {
 
                                     log.audit('Reduce - Created JE ID', jeResult.jeRecId);
@@ -1213,7 +1231,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                         invoiceHeader.custbody_mhi_koa_run_hist = runHistId;
 
                     //Create Invoice
-                    let invoiceResult = createInvoice(invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId);
+                    let invoiceResult = createInvoice(invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId, 6);
 
                     //Define Vendor Bill header data
                     let vbHeader = {};
@@ -1225,7 +1243,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                         vbHeader.custbody_mhi_koa_run_hist = runHistId;
                         
                     //Create Vendor Bill
-                    let vbResult = createVendorBill(vbHeader, reduceValues, ucGLsettings, existingVbId);
+                    let vbResult = createVendorBill(vbHeader, reduceValues, ucGLsettings, existingVbId, 6);
 
                     let invoiceRecId = invoiceResult.invoiceRecId;
                     let vbRecId = vbResult.vbRecId;
@@ -1233,7 +1251,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                     log.audit('Reduce - Created Transactions', 'Invoice Rec ID: ' + invoiceRecId + ' | Vendor Bill Rec ID: ' + vbRecId);
 
                     //Update related transactions
-                    updateRelatedTrans(invoiceRecId, vbRecId, srcTranArr);
+                    updateRelatedTrans(invoiceRecId, vbRecId, srcTranArr, 6);
 
                     if (invoiceRecId && vbRecId) {
                         
@@ -1276,6 +1294,163 @@ define(['N/search', 'N/record', 'N/runtime'],
                 } else {
 
                     throw new Error('No GL Settings found for UC6.');
+                }
+
+            } catch (error) {
+
+                //let errorMsg = `Reduce Error: ${error.message} | Source Tran + Line Keys: ${srcTranLinkeyArr.join(', ')}`;
+                let errorMsg = `Reduce Error: ${error.message} | Key: ${reduceKey}`;
+
+                log.error('Reduce - JE Data Preparation Error', errorMsg);
+
+                return {
+
+                    status: 'Failed',
+                    errorMsg,
+                    srcTranArr,
+                    runHistId
+                }
+            }
+        }
+
+        /**
+         * Function to handle UC7 Beverage Concession Fee IC Invoice + IC Bill (GL Detail)
+         * @param {String} reduceKey - reduce key
+         * @param {Array} reduceValues - Array of reduced values for Donation Roundups & Fundraisers
+         * @param {String} mrTaskId - The ID of the current map/reduce task
+         * 
+         * @returns {Object} - Object containing the status, Invoice and Vendor Bill ID, source transaction array, and run history ID
+         */
+        const handleUC7_handleConcessionFeeInvBillPair = (reduceKey, reduceValues, mrTaskId) => {
+
+            const CONFIG = getConfig();
+            let configObj = CONFIG.configObj;
+            let glSettings = CONFIG.glSettings;
+
+            let bevSubId;
+            let tranDate;
+            let runHistId;
+
+            let existingInvoiceId;
+            let existingVbId;
+
+            let srcTranArr = [];
+            let srcTranLinkeyArr = [];
+
+            //Loop through grouped transaction lines
+            for (let x = 0; x < reduceValues.length; x++) {
+                
+                let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                bevSubId = getValue(tranLine, 'custrecord_koa_cpg_bevco', false);
+                tranDate = getValue(tranLine, 'trandate', false);
+
+                existingInvoiceId = getValue(tranLine, 'custbody_mhi_koa_concession_fee_inv', false);
+                existingVbId = getValue(tranLine, 'custbody_mhi_koa_concession_fee_bill', false);
+
+                //Get unique source tran IDs
+                let srcTranId = tranLine.id;
+                if (!srcTranArr.includes(srcTranId)) {
+                    srcTranArr.push(srcTranId);
+                }
+
+                //Get unique source tran IDs and line unique keys. For error messaging purposes
+                let srcTranLineId = tranLine.lineuniquekey.value;
+                let tranLineUniqueKey = `${srcTranId}_${srcTranLineId}`;
+                if (!srcTranLinkeyArr.includes(tranLineUniqueKey)) {
+                    srcTranLinkeyArr.push(tranLineUniqueKey);
+                }
+
+                runHistId = tranLine.runHistId;
+            }
+
+            log.debug('Reduce - Existing Transactions', 'Invoice ID: ' + existingInvoiceId + ' | VB ID: ' + existingVbId);
+
+            try {
+
+                //Get GL settings associated with the use case
+                let ucGLsettings = glSettings['UC7'];
+                if (ucGLsettings) {
+
+                    let icCustomerId = getICcustomer(bevSubId, 21); //21 == KOA (002)
+                    let icVendorId = getICvendor(bevSubId, 21); //21 == KOA (002)
+                    
+                    log.debug('Reduce - Entities Found', 'IC Customer: ' + icCustomerId + ' | IC Vendor: ' + icVendorId);
+                    
+                    //Define Invoice header data
+                    let invoiceHeader = {};
+                        invoiceHeader.entity = icCustomerId;
+                        invoiceHeader.subsidiary = bevSubId;
+                        invoiceHeader.trandate = new Date(tranDate);
+                        invoiceHeader.custbody_mhi_koa_run_id = mrTaskId;
+                        invoiceHeader.custbody_mhi_koa_parent_txn = srcTranArr;
+                        invoiceHeader.custbody_mhi_koa_run_hist = runHistId;
+
+                    //Create Invoice
+                    let invoiceResult = createInvoice(invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId, 7);
+
+                    //Define Vendor Bill header data
+                    let vbHeader = {};
+                        vbHeader.entity = icVendorId;
+                        vbHeader.subsidiary = 21; //21 == KOA (002)
+                        vbHeader.trandate = new Date(tranDate);
+                        vbHeader.custbody_mhi_koa_run_id = mrTaskId;
+                        vbHeader.custbody_mhi_koa_parent_txn = srcTranArr;
+                        vbHeader.custbody_mhi_koa_run_hist = runHistId;
+                        
+                    //Create Vendor Bill
+                    let vbResult = createVendorBill(vbHeader, reduceValues, ucGLsettings, existingVbId, 7);
+
+                    let invoiceRecId = invoiceResult.invoiceRecId;
+                    let vbRecId = vbResult.vbRecId;
+
+                    log.audit('Reduce - Created Transactions', 'Invoice Rec ID: ' + invoiceRecId + ' | Vendor Bill Rec ID: ' + vbRecId);
+
+                    //Update related transactions
+                    updateRelatedTrans(invoiceRecId, vbRecId, srcTranArr, 7);
+
+                    if (invoiceRecId && vbRecId) {
+                        
+                        return {
+
+                            status: 'Success',
+                            createTranArr: [invoiceRecId, vbRecId],
+                            srcTranArr,
+                            runHistId
+                        }
+
+                    } else {
+
+                        let invoiceErrorMsg = invoiceResult.errorMsg;
+                        let vbErrorMsg = vbResult.errorMsg;
+
+                        let errorMsg = 'Reduce Error - ';
+
+                        if (invoiceErrorMsg) {
+                            errorMsg = errorMsg + 'Invoice Error: ' + invoiceErrorMsg + ' | ';
+                        }
+                        if (vbErrorMsg) {
+                            errorMsg = errorMsg + ' Vendor Bill Error: ' + vbErrorMsg + ' | ';
+                        }
+
+                        errorMsg = errorMsg + ' Key: ' + reduceKey;
+                        //let errorMsg = `Reduce Error: ${jeResult.errorMsg} | Key: ${reduceKey}`;
+
+                        log.error('Reduce - Transaction Creation Error', errorMsg);
+
+                        return {
+
+                            status: 'Failed',
+                            errorMsg,
+                            srcTranArr,
+                            runHistId
+                        }
+                    }
+
+                } else {
+
+                    throw new Error('No GL Settings found for UC7.');
                 }
 
             } catch (error) {
@@ -1433,7 +1608,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 log.debug('Reduce - JE Lines', jeLinesArr);
 
                                 //Create JE
-                                let jeResult = createJE(jeHeader, jeLinesArr);
+                                let jeResult = createJE(jeHeader, jeLinesArr, 'TDD2_UC2');
                                 if (jeResult.status == 'Success') {
 
                                     log.audit('Reduce - Created JE ID', jeResult.jeRecId);
@@ -1642,10 +1817,11 @@ define(['N/search', 'N/record', 'N/runtime'],
          * Function to create Journal Entry record
          * @param {Object} jeHeader - Object containing the header values for the JE
          * @param {Array} jeLinesArr - Array of objects containing the line values for the JE
+         * @param {Number} ucNum - Use Case number
          * 
          * @returns {Number} - The internal ID of the created JE record
          */
-        const createJE = (jeHeader, jeLinesArr) => {
+        const createJE = (jeHeader, jeLinesArr, ucNum) => {
 
             try {
 
@@ -1654,6 +1830,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                     type: 'advintercompanyjournalentry',
                     isDynamic: true
                 });
+                
+                jeRecObj.setValue('custbody_mhi_koa_uc_num', ucNum);
 
                 let jeheaderKeys = Object.keys(jeHeader);
                 
@@ -1708,10 +1886,11 @@ define(['N/search', 'N/record', 'N/runtime'],
          * @param {Array} reduceValues - Array of objects containing the line values for the invoice
          * @param {Array} ucGLsettings - Array of objects containing related GL Settings
          * @param {Number} existingInvoiceId - Existing invoice record internal id
+         * @param {Number} ucNum - Use Case number
          * 
          * @returns {Number} - The internal ID of the created Invoice record
          */
-        const createInvoice = (invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId) => {
+        const createInvoice = (invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId, ucNum) => {
 
             try {
 
@@ -1723,6 +1902,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                         type: 'invoice',
                         isDynamic: true
                     });
+                    
+                    invoiceRecObj.setValue('custbody_mhi_koa_uc_num', ucNum);
 
                     let invoiceHeaderKeys = Object.keys(invoiceHeader);
 
@@ -1735,28 +1916,74 @@ define(['N/search', 'N/record', 'N/runtime'],
                     }
                     
                     //Set Invoice Line values
-                    for (let x = 0; x < reduceValues.length; x++) {
+                    if (ucNum == 6) {
                         
-                        let reduceValuesParsed = JSON.parse(reduceValues[x]);
-                        let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+                        for (let x = 0; x < reduceValues.length; x++) {
+                            
+                            let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                            let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
-                        let accountId = getValue(tranLine, 'account', false);
-                        let amt = getValue(tranLine, 'amount', false);
-                            amt = (amt) ? parseFloat(amt) : 0.00;
+                            let accountId = getValue(tranLine, 'account', false);
+                            let amt = getValue(tranLine, 'amount', false);
+                                amt = (amt) ? parseFloat(amt) : 0.00;
 
-                        let mappedGLsettings = ucGLsettings.find(setting => setting.defRevAccntId == accountId);
+                            let mappedGLsettings = ucGLsettings.find(setting => setting.defRevAccntId == accountId);
+                            log.debug('Reduce - Mapped GL Settings', mappedGLsettings);
+
+                            let invoiceItemId = mappedGLsettings.invoiceItemId;
+                            let destCpgId = mappedGLsettings.destCpgId;
+                            let destDeptId = mappedGLsettings.destDeptId;
+
+                            if (invoiceItemId && destCpgId) {
+                                
+                                invoiceRecObj.selectNewLine({sublistId: 'item'});
+                                invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'item', value: invoiceItemId});
+                                invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'quantity', value: 1});
+                                invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'rate', value: amt});
+                                invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'description', value: 'Reimbursement for Beverage Sales'});
+                                invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'cseg_koa_cpg', value: destCpgId});
+                                if (destDeptId) invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'department', value: destDeptId});
+
+                                invoiceRecObj.commitLine({sublistId: 'item'});
+                                
+                            } else {
+
+                                throw new Error('Invoice creation failed. Missing Default Item and Campground.');
+                            }
+                        }
+                        
+                    } else if (ucNum == 7) {
+
+                        let totalAmt = 0.00;
+
+                        for (let x = 0; x < reduceValues.length; x++) {
+                            
+                            let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                            let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                            //Get total amount
+                            let amt = getValue(tranLine, 'amount', false);
+                                amt = (amt) ? parseFloat(amt) : 0.00;
+
+                            totalAmt = totalAmt + amt;
+                        }
+
+                        log.debug('Reduce - Total Amount', totalAmt);
+
+                        let mappedGLsettings = ucGLsettings[0]; //There's only one GL settings for UC7
+                        log.debug('Reduce - Mapped GL Settings', mappedGLsettings);
 
                         let invoiceItemId = mappedGLsettings.invoiceItemId;
                         let destCpgId = mappedGLsettings.destCpgId;
                         let destDeptId = mappedGLsettings.destDeptId;
 
                         if (invoiceItemId && destCpgId) {
-                            
+                                
                             invoiceRecObj.selectNewLine({sublistId: 'item'});
                             invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'item', value: invoiceItemId});
                             invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'quantity', value: 1});
-                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'rate', value: amt});
-                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'description', value: 'Reimbursement for Beverage Sales'});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'rate', value: totalAmt});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'description', value: 'Concession Fee'});
                             invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'cseg_koa_cpg', value: destCpgId});
                             if (destDeptId) invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'department', value: destDeptId});
 
@@ -1797,10 +2024,11 @@ define(['N/search', 'N/record', 'N/runtime'],
          * @param {Array} reduceValues - Array of objects containing the line values for the invoice
          * @param {Array} ucGLsettings - Array of objects containing related GL Settings
          * @param {Number} existingVbId - Existing vendor bill record internal id
+         * @param {Number} ucNum - Use Case number
          * 
          * @returns {Number} - The internal ID of the created Invoice record
          */
-        const createVendorBill = (vbHeader, reduceValues, ucGLsettings, existingVbId) => {
+        const createVendorBill = (vbHeader, reduceValues, ucGLsettings, existingVbId, ucNum) => {
 
             try {
 
@@ -1812,6 +2040,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                         isDynamic: true
                     });
 
+                    vbRecObj.setValue('custbody_mhi_koa_uc_num', ucNum);
+                    
                     let vbHeaderKeys = Object.keys(vbHeader);
 
                     //Set Vendor Bill Header values
@@ -1823,25 +2053,69 @@ define(['N/search', 'N/record', 'N/runtime'],
                     }
                     
                     //Set Vendor Bill Line values
-                    for (let x = 0; x < reduceValues.length; x++) {
+                    if (ucNum == 6) {
                         
-                        let reduceValuesParsed = JSON.parse(reduceValues[x]);
-                        let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+                        for (let x = 0; x < reduceValues.length; x++) {
+                            
+                            let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                            let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
-                        let accountId = getValue(tranLine, 'account', false);
-                        let amt = getValue(tranLine, 'amount', false);
-                            amt = (amt) ? parseFloat(amt) : 0.00;
+                            let accountId = getValue(tranLine, 'account', false);
+                            let amt = getValue(tranLine, 'amount', false);
+                                amt = (amt) ? parseFloat(amt) : 0.00;
 
-                        let mappedGLsettings = ucGLsettings.find(setting => setting.defRevAccntId == accountId);
+                            let mappedGLsettings = ucGLsettings.find(setting => setting.defRevAccntId == accountId);
 
+                            let destCpgId = mappedGLsettings.destCpgId;
+                            let destDeptId = mappedGLsettings.destDeptId;
+
+                            if (destCpgId) {
+                                
+                                vbRecObj.selectNewLine({sublistId: 'expense'});
+                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
+                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: amt});
+                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
+                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: destCpgId});
+                                if (destDeptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: destDeptId});
+
+                                vbRecObj.commitLine({sublistId: 'expense'});
+                                
+                            } else {
+
+                                throw new Error('Vendor Bill creation failed. Missing Default Campground.');
+                            }
+                        }
+
+                    } else if (ucNum == 7) {
+
+                        let totalAmt = 0.00;
+
+                        for (let x = 0; x < reduceValues.length; x++) {
+                            
+                            let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                            let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                            //Get total amount
+                            let amt = getValue(tranLine, 'amount', false);
+                                amt = (amt) ? parseFloat(amt) : 0.00;
+
+                            totalAmt = totalAmt + amt;
+                        }
+
+                        log.debug('Reduce - Total Amount', totalAmt);
+
+                        let mappedGLsettings = ucGLsettings[0]; //There's only one GL settings for UC7
+                        log.debug('Reduce - Mapped GL Settings', mappedGLsettings);
+
+                        let accountId = mappedGLsettings.expenseItemId;
                         let destCpgId = mappedGLsettings.destCpgId;
                         let destDeptId = mappedGLsettings.destDeptId;
 
-                        if (destCpgId) {
+                        if (accountId && destCpgId) {
                             
                             vbRecObj.selectNewLine({sublistId: 'expense'});
                             vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
-                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: amt});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: totalAmt});
                             vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
                             vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: destCpgId});
                             if (destDeptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: destDeptId});
@@ -1850,7 +2124,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                             
                         } else {
 
-                            throw new Error('Vendor Bill creation failed. Missing Default Campground.');
+                            throw new Error('Vendor Bill creation failed. Missing Default Expense Item and Campground.');
                         }
                     }
 
@@ -1868,7 +2142,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                 };
 
             } catch (error) {
-
+                
                 return {
                     
                     status: 'Failed',
@@ -1882,10 +2156,11 @@ define(['N/search', 'N/record', 'N/runtime'],
          * @param {Number} invoiceRecId - The internal ID of the created Invoice (falsy if no Invoice was created)
          * @param {Number} vbRecId - The internal ID of the created Vendor Bill (falsy if no Vendor Bill was created)
          * @param {Number[]} srcTranArr - The internal IDs of the source Journal Entries to stamp with the created transactions
+         * @param {Number} ucNum - Use Case number
          *
          * @returns {void}
          */
-        const updateRelatedTrans = (invoiceRecId, vbRecId, srcTranArr) => {
+        const updateRelatedTrans = (invoiceRecId, vbRecId, srcTranArr, ucNum) => {
 
             if (invoiceRecId && vbRecId) {
                 
@@ -1910,6 +2185,19 @@ define(['N/search', 'N/record', 'N/runtime'],
                 log.debug('Reduce - Vendor Bill Updated with Paried Invoice', 'VB ID: ' + invoiceRecId + ' | Invoice ID: ' + vbRecId);
             }
 
+            let submitValues = {};
+
+            if (ucNum == 6) {
+                
+                submitValues.custbody_mhi_koa_beverage_sales_inv = invoiceRecId;
+                submitValues.custbody_mhi_koa_beverage_sales_bill = vbRecId;
+
+            } else if (ucNum == 7) {
+
+                submitValues.custbody_mhi_koa_concession_fee_inv = invoiceRecId;
+                submitValues.custbody_mhi_koa_concession_fee_bill = vbRecId
+            }
+
             //Update the source transactions with the created Invoice and Vendor Bill
             if (invoiceRecId || vbRecId) {
 
@@ -1920,10 +2208,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                     record.submitFields({
                         type: 'journalentry',
                         id: srcTranId,
-                        values: {
-                            custbody_mhi_koa_beverage_sales_inv: invoiceRecId,
-                            custbody_mhi_koa_beverage_sales_bill: vbRecId
-                        }
+                        values: submitValues
                     });
                 }
             }
@@ -2039,6 +2324,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             handleUC3_RewardsRedemptionICJE,
             handleUC4_handleDonationICJE,
             handleUC6_handleBeverageSalesInvBillPair,
+            handleUC7_handleConcessionFeeInvBillPair,
             handleTDD2UC2_RewardsRedemptionICJE,
             createOrUpdateRunHistory
         }

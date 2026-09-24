@@ -28,7 +28,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
             try {
 
                 runHistId = LIB.createOrUpdateRunHistory('getInput', 'create');
-                //runHistId = 1103;
+                //runHistId = 1418;
                 log.audit('Get Input - Run History ID', runHistId);
 
                 const CONFIG = LIB.getConfig();
@@ -51,7 +51,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         let uc1SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC1']);
                         if (uc1SearchId) {
                             
-                            log.audit('Get Input - UC1 Search ID', uc1SearchId);
+                            log.debug('Get Input - UC1 Search ID', uc1SearchId);
 
                             LIB.getSearchResult(uc1SearchId, ucSeachResultArr, runHistId, 1);
 
@@ -81,7 +81,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         let uc3SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC3']);
                         if (uc3SearchId) {
                             
-                            log.audit('Get Input - UC3 Search ID', uc3SearchId);
+                            log.debug('Get Input - UC3 Search ID', uc3SearchId);
 
                             LIB.getSearchResult(uc3SearchId, ucSeachResultArr, runHistId, 3);
 
@@ -96,9 +96,24 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         let uc4SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC4']);
                         if (uc4SearchId) {
                             
-                            log.audit('Get Input - UC4 Search ID', uc4SearchId);
+                            log.debug('Get Input - UC4 Search ID', uc4SearchId);
 
                             LIB.getSearchResult(uc4SearchId, ucSeachResultArr, runHistId, 4);
+
+                        } else {
+
+                            log.error('No UC4 Search ID Found');
+                        }
+                    }
+
+                    if (configObj.boolActive_UC6) {
+                        
+                        let uc6SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['UC6']);
+                        if (uc6SearchId) {
+                            
+                            log.debug('Get Input - UC4 Search ID', uc6SearchId);
+
+                            LIB.getSearchResult(uc6SearchId, ucSeachResultArr, runHistId, 6);
 
                         } else {
 
@@ -112,7 +127,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         let tdd2UC2SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['TDD_UC2']);
                         if (tdd2UC2SearchId) {
                             
-                            log.audit('Get Input - TDD2 UC2 Search ID', tdd2UC2SearchId);
+                            log.debug('Get Input - TDD2 UC2 Search ID', tdd2UC2SearchId);
 
                             LIB.getSearchResult(tdd2UC2SearchId, ucSeachResultArr, runHistId, '2_2');
 
@@ -247,13 +262,13 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                     let firstIndex = JSON.parse(reduceValues[0]); 
                     let firstIndexTranLine = JSON.parse(firstIndex.tranLine);
 
-                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == '2_2') {
+                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == 6 || firstIndexTranLine.ucNum == '2_2') {
                         
                         let fromSub = LIB.getValue(firstIndexTranLine, 'subsidiarynohierarchy', true);
                         let campGround = LIB.getValue(firstIndexTranLine, 'line.cseg_koa_cpg', true);
                         let dept = LIB.getValue(firstIndexTranLine, 'departmentnohierarchy', true);
                         
-                        log.audit('Reduce - Create JE', 'UC: ' + firstIndexTranLine.ucNum + ' | Key: ' + reduceKey + ' | Originating Sub: ' + fromSub + ' | Camp Ground: ' + campGround + ' | Tran Line Count: ' + reduceValues.length);
+                        log.audit((firstIndexTranLine.ucNum == 6 || firstIndexTranLine.ucNum == 7) ? 'Reduce - Create Invoice and VB' : 'Reduce - Create JE', 'UC: ' + firstIndexTranLine.ucNum + ' | Key: ' + reduceKey + ' | Originating Sub: ' + fromSub + ' | Camp Ground: ' + campGround + ' | Tran Line Count: ' + reduceValues.length);
 
                         let result;
 
@@ -263,6 +278,8 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                             result = LIB.handleUC3_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
                         } else if (firstIndexTranLine.ucNum == 4) {
                             result = LIB.handleUC4_handleDonationICJE(reduceKey, reduceValues, mrTaskId);
+                        } else if (firstIndexTranLine.ucNum == 6) {
+                            result = LIB.handleUC6_handleBeverageSalesInvBillPair(reduceKey, reduceValues, mrTaskId);
                         } else if (firstIndexTranLine.ucNum == '2_2') {
                             result = LIB.handleTDD2UC2_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
                         }
@@ -275,7 +292,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                                     
                                     status: 'Success',
                                     srcTranArr: result.srcTranArr,
-                                    jeRecId: result.jeRecId,
+                                    createdTranArr: result.createTranArr,
                                     runHistId: result.runHistId
                                 }
                             });
@@ -362,12 +379,14 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
 
                     let valueParsed = JSON.parse(value);
                     let srcTranArr = valueParsed.srcTranArr;
+                    let createdTranArr = valueParsed.createdTranArr;
+
                     runHistId = valueParsed.runHistId;
 
                     if (key != 'Failed') {
 
                         countSuccess = countSuccess + srcTranArr.length;
-                        countJEsCreated = countJEsCreated + 1;
+                        countJEsCreated = countJEsCreated + createdTranArr.length;
 
                     } else {
 
@@ -379,7 +398,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                     return true;
                 });
 
-                log.audit('Summary - Counts', 'Success: ' + countSuccess + ' | Failed: ' + countFailed + '| Total: ' + (countSuccess + countFailed) + ' | JEs Created: ' + countJEsCreated);
+                log.audit('Summary - Counts', 'Success: ' + countSuccess + ' | Failed: ' + countFailed + '| Total: ' + (countSuccess + countFailed) + ' | Transactions Created: ' + countJEsCreated);
                 log.debug('Summary - Failures', failuresArr);
 
                 //Update the Run History record with the summary counts and failures

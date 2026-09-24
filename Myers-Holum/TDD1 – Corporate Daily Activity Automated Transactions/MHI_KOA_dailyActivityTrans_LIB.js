@@ -76,11 +76,11 @@ define(['N/search', 'N/record', 'N/runtime'],
                         [
                             ["isinactive","is","F"], 
                             "AND", 
-                            ["custrecord_mhi_koa_txn_gl_parent","anyof", atcConfigId], 
+                            ["custrecord_mhi_koa_txn_gl_parent","anyof", atcConfigId]/* , 
                             "AND", 
                             ["custrecord_mhi_koa_txn_gl_origin_sub","noneof","@NONE@"], 
                             "AND", 
-                            ["custrecord_mhi_koa_txn_gl_destin_sub1","noneof","@NONE@"]
+                            ["custrecord_mhi_koa_txn_gl_destin_sub1","noneof","@NONE@"] */
                         ],
                         columns:
                         [
@@ -93,7 +93,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                             search.createColumn({name: "custrecord_mhi_koa_txn_gl_gc_liability", label: "Gift Card Liability"}),
                             search.createColumn({name: "custrecord_mhi_koa_txn_gl_def_rev", label: "Deferred Revenue"}),
                             search.createColumn({name: "custrecord_mhi_koa_txn_gl_rwd_liability", label: "Rewards Liability"}),
-                            search.createColumn({name: "custrecord_mhi_koa_txn_gl_don_clg", label: "Donations Clearing"})
+                            search.createColumn({name: "custrecord_mhi_koa_txn_gl_don_clg", label: "Donations Clearing"}),
+                            search.createColumn({name: "custrecord_mhi_koa_txn_gl_item", label: "Item"})
                         ]
                     });
 
@@ -119,6 +120,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                                 ucNum = 'UC3';
                             } else if (useCaseText.includes('TDD1 - UC4')) {
                                 ucNum = 'UC4';
+                            } else if (useCaseText.includes('TDD1 - UC6')) {
+                                ucNum = 'UC6';
                             }
 
                             else if (useCaseText.includes('TDD2 - UC2')) {
@@ -136,6 +139,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                             let defRevAccntId = result.getValue(glSettingSearchCols[7]);
                             let rLiabilityAccntId = result.getValue(glSettingSearchCols[8]);
                             let donationsClearingAccntId = result.getValue(glSettingSearchCols[9]);
+                            let invoiceItemId = result.getValue(glSettingSearchCols[10]);
 
                             if (ucNum) {
 
@@ -149,7 +153,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     gcLiabilityAccntId,
                                     defRevAccntId,
                                     rLiabilityAccntId,
-                                    donationsClearingAccntId
+                                    donationsClearingAccntId,
+                                    invoiceItemId
                                 });
                             }
 
@@ -204,7 +209,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             let searchObj = search.load({id: searchId});
             let searchCount = searchObj.runPaged().count;
 
-            log.audit(`Get Input - UC${ucNum} Seach Count`, searchCount);
+            log.debug(`Get Input - UC${ucNum} Seach Count`, searchCount);
 
             if (searchCount) {
                 
@@ -319,6 +324,19 @@ define(['N/search', 'N/record', 'N/runtime'],
                 let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
                 let date = getValue(mapValuesParsed, 'trandate', false);
                 log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date}`);
+
+                if (fromSubId && campGroundId) {
+                    
+                    key = `${fromSubId}_${campGroundId}_${date}`;
+                }
+                
+            } else if (ucNum == 6) {
+
+                let fromSubId = getValue(mapValuesParsed, 'subsidiarynohierarchy', false);
+                let campGroundId = getValue(mapValuesParsed, 'line.cseg_koa_cpg', false);
+                let date = getValue(mapValuesParsed, 'trandate', false);
+                let accountId = getValue(mapValuesParsed, 'account', false);
+                log.debug('Map - Generate Key', `UC Num: ${ucNum} | From Sub: ${fromSubId} | Camp Ground: ${campGroundId} | Date: ${date} | Account: ${accountId}`);
 
                 if (fromSubId && campGroundId) {
                     
@@ -579,7 +597,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         return {
 
                                             status: 'Success',
-                                            jeRecId: jeResult.jeRecId,
+                                            createTranArr: [jeResult.jeRecId],
                                             srcTranArr,
                                             runHistId
                                         }
@@ -837,7 +855,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         return {
 
                                             status: 'Success',
-                                            jeRecId: jeResult.jeRecId,
+                                            createTranArr: [jeResult.jeRecId],
                                             srcTranArr,
                                             runHistId
                                         }
@@ -970,7 +988,6 @@ define(['N/search', 'N/record', 'N/runtime'],
                         let destDeptId = origSubGLsetting.destDeptId;
                         let donationsClearingAccntId = origSubGLsetting.donationsClearingAccntId;
                         
-
                         let icApAccntId = configObj.icApAccntId;
                         let icArAccntId = configObj.icArAccntId;
 
@@ -1060,7 +1077,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         return {
 
                                             status: 'Success',
-                                            jeRecId: jeResult.jeRecId,
+                                            createTranArr: [jeResult.jeRecId],
                                             srcTranArr,
                                             runHistId
                                         }
@@ -1096,12 +1113,169 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                     } else {
 
-                        throw new Error("No GL Settings found for UC1's originating subsidiary.");
+                        throw new Error("No GL Settings found for UC4's originating subsidiary.");
                     }
 
                 } else {
 
-                    throw new Error('No GL Settings found for UC1.');
+                    throw new Error('No GL Settings found for UC4.');
+                }
+
+            } catch (error) {
+
+                //let errorMsg = `Reduce Error: ${error.message} | Source Tran + Line Keys: ${srcTranLinkeyArr.join(', ')}`;
+                let errorMsg = `Reduce Error: ${error.message} | Key: ${reduceKey}`;
+
+                log.error('Reduce - JE Data Preparation Error', errorMsg);
+
+                return {
+
+                    status: 'Failed',
+                    errorMsg,
+                    srcTranArr,
+                    runHistId
+                }
+            }
+        }
+
+        /**
+         * Function to handle UC6 Beverage Sales IC Invoice + IC Bill (GL Detail)
+         * @param {String} reduceKey - reduce key
+         * @param {Array} reduceValues - Array of reduced values for Donation Roundups & Fundraisers
+         * @param {String} mrTaskId - The ID of the current map/reduce task
+         * 
+         * @returns {Object} - Object containing the status, Invoice and Vendor Bill ID, source transaction array, and run history ID
+         */
+        const handleUC6_handleBeverageSalesInvBillPair = (reduceKey, reduceValues, mrTaskId) => {
+
+            const CONFIG = getConfig();
+            let configObj = CONFIG.configObj;
+            let glSettings = CONFIG.glSettings;
+
+            let bevSubId;
+            let tranDate;
+            let runHistId;
+
+            let existingInvoiceId;
+            let existingVbId;
+
+            let srcTranArr = [];
+            let srcTranLinkeyArr = [];
+
+            //Loop through grouped transaction lines
+            for (let x = 0; x < reduceValues.length; x++) {
+                
+                let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                bevSubId = getValue(tranLine, 'custrecord_koa_cpg_bevco', false);
+                tranDate = getValue(tranLine, 'trandate', false);
+
+                existingInvoiceId = getValue(tranLine, 'custbody_mhi_koa_beverage_sales_inv', false);
+                existingVbId = getValue(tranLine, 'custbody_mhi_koa_beverage_sales_bill', false);
+
+                //Get unique source tran IDs
+                let srcTranId = tranLine.id;
+                if (!srcTranArr.includes(srcTranId)) {
+                    srcTranArr.push(srcTranId);
+                }
+
+                //Get unique source tran IDs and line unique keys. For error messaging purposes
+                let srcTranLineId = tranLine.lineuniquekey.value;
+                let tranLineUniqueKey = `${srcTranId}_${srcTranLineId}`;
+                if (!srcTranLinkeyArr.includes(tranLineUniqueKey)) {
+                    srcTranLinkeyArr.push(tranLineUniqueKey);
+                }
+
+                runHistId = tranLine.runHistId;
+            }
+
+            log.debug('Reduce - Existing Transactions', 'Invoice ID: ' + existingInvoiceId + ' | VB ID: ' + existingVbId);
+
+            try {
+
+                //Get GL settings associated with the use case
+                let ucGLsettings = glSettings['UC6'];
+                if (ucGLsettings) {
+
+                    let icCustomerId = getICcustomer(bevSubId, 21); //21 == KOA (002)
+                    let icVendorId = getICvendor(bevSubId, 21); //21 == KOA (002)
+                    
+                    log.debug('Reduce - Entities Found', 'IC Customer: ' + icCustomerId + ' | IC Vendor: ' + icVendorId);
+                    
+                    //Define Invoice header data
+                    let invoiceHeader = {};
+                        invoiceHeader.entity = icCustomerId;
+                        invoiceHeader.subsidiary = bevSubId;
+                        invoiceHeader.trandate = new Date(tranDate);
+                        invoiceHeader.custbody_mhi_koa_run_id = mrTaskId;
+                        invoiceHeader.custbody_mhi_koa_parent_txn = srcTranArr;
+                        invoiceHeader.custbody_mhi_koa_run_hist = runHistId;
+
+                    //Create Invoice
+                    let invoiceResult = createInvoice(invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId);
+
+                    //Define Vendor Bill header data
+                    let vbHeader = {};
+                        vbHeader.entity = icVendorId;
+                        vbHeader.subsidiary = 21; //21 == KOA (002)
+                        vbHeader.trandate = new Date(tranDate);
+                        vbHeader.custbody_mhi_koa_run_id = mrTaskId;
+                        vbHeader.custbody_mhi_koa_parent_txn = srcTranArr;
+                        vbHeader.custbody_mhi_koa_run_hist = runHistId;
+                        
+                    //Create Vendor Bill
+                    let vbResult = createVendorBill(vbHeader, reduceValues, ucGLsettings, existingVbId);
+
+                    let invoiceRecId = invoiceResult.invoiceRecId;
+                    let vbRecId = vbResult.vbRecId;
+
+                    log.audit('Reduce - Created Transactions', 'Invoice Rec ID: ' + invoiceRecId + ' | Vendor Bill Rec ID: ' + vbRecId);
+
+                    //Update related transactions
+                    updateRelatedTrans(invoiceRecId, vbRecId, srcTranArr);
+
+                    if (invoiceRecId && vbRecId) {
+                        
+                        return {
+
+                            status: 'Success',
+                            createTranArr: [invoiceRecId, vbRecId],
+                            srcTranArr,
+                            runHistId
+                        }
+
+                    } else {
+
+                        let invoiceErrorMsg = invoiceResult.errorMsg;
+                        let vbErrorMsg = vbResult.errorMsg;
+
+                        let errorMsg = 'Reduce Error - ';
+
+                        if (invoiceErrorMsg) {
+                            errorMsg = errorMsg + 'Invoice Error: ' + invoiceErrorMsg + ' | ';
+                        }
+                        if (vbErrorMsg) {
+                            errorMsg = errorMsg + ' Vendor Bill Error: ' + vbErrorMsg + ' | ';
+                        }
+
+                        errorMsg = errorMsg + ' Key: ' + reduceKey;
+                        //let errorMsg = `Reduce Error: ${jeResult.errorMsg} | Key: ${reduceKey}`;
+
+                        log.error('Reduce - Transaction Creation Error', errorMsg);
+
+                        return {
+
+                            status: 'Failed',
+                            errorMsg,
+                            srcTranArr,
+                            runHistId
+                        }
+                    }
+
+                } else {
+
+                    throw new Error('No GL Settings found for UC6.');
                 }
 
             } catch (error) {
@@ -1283,7 +1457,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                         return {
 
                                             status: 'Success',
-                                            jeRecId: jeResult.jeRecId,
+                                            createTranArr: [jeResult.jeRecId],
                                             srcTranArr,
                                             runHistId
                                         }
@@ -1395,6 +1569,76 @@ define(['N/search', 'N/record', 'N/runtime'],
         }
 
         /**
+         * Function to get IC customer to be used on creation if invoice for UC6 and UC7
+         * @param {Number} fromSubId - originating subsidiary internal id
+         * @param {Number} destSubId - destination subsidiary internal id
+         * 
+         * @returns {Number} IC customer ID
+         */
+        const getICcustomer = (fromSubId, destSubId) => {
+
+            let icCustomerId;
+
+            let icCustSearchObj = search.create({
+                type: "customer",
+                filters:
+                [
+                    ["representingsubsidiary","anyof", destSubId], 
+                    "AND", 
+                    ["msesubsidiary.internalid","anyof", fromSubId]
+                ]
+            });
+
+            let icCustSearchCount = icCustSearchObj.runPaged().count;
+            if (icCustSearchCount) {
+                
+                icCustSearchObj.run().each(function(result){
+                    
+                    icCustomerId = result.id;
+
+                    return true;
+                });
+            }
+
+            return icCustomerId;
+        }
+
+        /**
+         * Function to get IC customer to be used on creation if invoice for UC6 and UC7
+         * @param {Number} fromSubId - originating subsidiary internal id
+         * @param {Number} destSubId - destination subsidiary internal id
+         * 
+         * @returns {Number} IC customer ID
+         */
+        const getICvendor = (fromSubId, destSubId) => {
+
+            let icVendorId;
+
+            let icVendSearchObj = search.create({
+                type: "vendor",
+                filters:
+                [
+                    ["representingsubsidiary","anyof", fromSubId], 
+                    "AND", 
+                    ["msesubsidiary.internalid","anyof", destSubId]
+                ],
+            });
+
+            let icVendSearchCount = icVendSearchObj.runPaged().count;
+            if (icVendSearchCount) {
+                
+                icVendSearchObj.run().each(function(result){
+                    
+                    icVendorId = result.id;
+
+                    return true;
+                });
+            }
+
+            return icVendorId;
+        }
+
+        /**
          * Function to create Journal Entry record
          * @param {Object} jeHeader - Object containing the header values for the JE
          * @param {Array} jeLinesArr - Array of objects containing the line values for the JE
@@ -1455,6 +1699,233 @@ define(['N/search', 'N/record', 'N/runtime'],
                     status: 'Failed',
                     errorMsg: error.message
                 };
+            }
+        }
+
+        /**
+         * Function to create Invoice record
+         * @param {Object} invoiceHeader - Object containing the header values for the invoice
+         * @param {Array} reduceValues - Array of objects containing the line values for the invoice
+         * @param {Array} ucGLsettings - Array of objects containing related GL Settings
+         * @param {Number} existingInvoiceId - Existing invoice record internal id
+         * 
+         * @returns {Number} - The internal ID of the created Invoice record
+         */
+        const createInvoice = (invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId) => {
+
+            try {
+
+                let invoiceRecId;
+
+                if (!existingInvoiceId) {
+                    
+                    let invoiceRecObj = record.create({
+                        type: 'invoice',
+                        isDynamic: true
+                    });
+
+                    let invoiceHeaderKeys = Object.keys(invoiceHeader);
+
+                    //Set Invoice Header values
+                    for (let x = 0; x < invoiceHeaderKeys.length; x++) {
+
+                        let key = invoiceHeaderKeys[x];
+
+                        invoiceRecObj.setValue({fieldId: key, value: invoiceHeader[key]});
+                    }
+                    
+                    //Set Invoice Line values
+                    for (let x = 0; x < reduceValues.length; x++) {
+                        
+                        let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                        let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                        let accountId = getValue(tranLine, 'account', false);
+                        let amt = getValue(tranLine, 'amount', false);
+                            amt = (amt) ? parseFloat(amt) : 0.00;
+
+                        let mappedGLsettings = ucGLsettings.find(setting => setting.defRevAccntId == accountId);
+
+                        let invoiceItemId = mappedGLsettings.invoiceItemId;
+                        let destCpgId = mappedGLsettings.destCpgId;
+                        let destDeptId = mappedGLsettings.destDeptId;
+
+                        if (invoiceItemId && destCpgId) {
+                            
+                            invoiceRecObj.selectNewLine({sublistId: 'item'});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'item', value: invoiceItemId});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'quantity', value: 1});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'rate', value: amt});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'description', value: 'Reimbursement for Beverage Sales'});
+                            invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'cseg_koa_cpg', value: destCpgId});
+                            if (destDeptId) invoiceRecObj.setCurrentSublistValue({sublistId: 'item', fieldId: 'department', value: destDeptId});
+
+                            invoiceRecObj.commitLine({sublistId: 'item'});
+                            
+                        } else {
+
+                            throw new Error('Invoice creation failed. Missing Default Item and Campground.');
+                        }
+                    }
+
+                    invoiceRecId = invoiceRecObj.save({ignoreMandatoryFields: true});
+                
+                } else {
+
+                    invoiceRecId = existingInvoiceId;
+                }
+
+                return {
+                    
+                    status: 'Success',
+                    invoiceRecId
+                };
+
+            } catch (error) {
+
+                return {
+                    
+                    status: 'Failed',
+                    errorMsg: error.message
+                };
+            }
+        }
+
+        /**
+         * Function to create Invoice record
+         * @param {Object} invoiceHeader - Object containing the header values for the invoice
+         * @param {Array} reduceValues - Array of objects containing the line values for the invoice
+         * @param {Array} ucGLsettings - Array of objects containing related GL Settings
+         * @param {Number} existingVbId - Existing vendor bill record internal id
+         * 
+         * @returns {Number} - The internal ID of the created Invoice record
+         */
+        const createVendorBill = (vbHeader, reduceValues, ucGLsettings, existingVbId) => {
+
+            try {
+
+                let vbRecId;
+                if (!existingVbId) {
+                    
+                    let vbRecObj = record.create({
+                        type: 'vendorbill',
+                        isDynamic: true
+                    });
+
+                    let vbHeaderKeys = Object.keys(vbHeader);
+
+                    //Set Vendor Bill Header values
+                    for (let x = 0; x < vbHeaderKeys.length; x++) {
+
+                        let key = vbHeaderKeys[x];
+
+                        vbRecObj.setValue({fieldId: key, value: vbHeader[key]});
+                    }
+                    
+                    //Set Vendor Bill Line values
+                    for (let x = 0; x < reduceValues.length; x++) {
+                        
+                        let reduceValuesParsed = JSON.parse(reduceValues[x]);
+                        let tranLine = JSON.parse(reduceValuesParsed.tranLine);
+
+                        let accountId = getValue(tranLine, 'account', false);
+                        let amt = getValue(tranLine, 'amount', false);
+                            amt = (amt) ? parseFloat(amt) : 0.00;
+
+                        let mappedGLsettings = ucGLsettings.find(setting => setting.defRevAccntId == accountId);
+
+                        let destCpgId = mappedGLsettings.destCpgId;
+                        let destDeptId = mappedGLsettings.destDeptId;
+
+                        if (destCpgId) {
+                            
+                            vbRecObj.selectNewLine({sublistId: 'expense'});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: amt});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: destCpgId});
+                            if (destDeptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: destDeptId});
+
+                            vbRecObj.commitLine({sublistId: 'expense'});
+                            
+                        } else {
+
+                            throw new Error('Vendor Bill creation failed. Missing Default Campground.');
+                        }
+                    }
+
+                    vbRecId = vbRecObj.save({ignoreMandatoryFields: true});
+
+                } else {
+
+                    vbRecId = existingVbId;
+                }
+
+                return {
+                    
+                    status: 'Success',
+                    vbRecId
+                };
+
+            } catch (error) {
+
+                return {
+                    
+                    status: 'Failed',
+                    errorMsg: error.message
+                };
+            }
+        }
+
+        /**
+         * Function to link the generated Beverage Sales transactions to each other and back to their source Journal Entries
+         * @param {Number} invoiceRecId - The internal ID of the created Invoice (falsy if no Invoice was created)
+         * @param {Number} vbRecId - The internal ID of the created Vendor Bill (falsy if no Vendor Bill was created)
+         * @param {Number[]} srcTranArr - The internal IDs of the source Journal Entries to stamp with the created transactions
+         *
+         * @returns {void}
+         */
+        const updateRelatedTrans = (invoiceRecId, vbRecId, srcTranArr) => {
+
+            if (invoiceRecId && vbRecId) {
+                
+                record.submitFields({
+                    type: 'invoice',
+                    id: invoiceRecId,
+                    values: {
+                        custbody_mhi_koa_paired_bev_txn: vbRecId
+                    }
+                });
+
+                log.debug('Reduce - Invoice Updated with Paried VB', 'Invoice ID: ' + invoiceRecId + ' | VB ID: ' + vbRecId);
+
+                record.submitFields({
+                    type: 'vendorbill',
+                    id: vbRecId,
+                    values: {
+                        custbody_mhi_koa_paired_bev_txn: invoiceRecId
+                    }
+                });
+
+                log.debug('Reduce - Vendor Bill Updated with Paried Invoice', 'VB ID: ' + invoiceRecId + ' | Invoice ID: ' + vbRecId);
+            }
+
+            //Update the source transactions with the created Invoice and Vendor Bill
+            if (invoiceRecId || vbRecId) {
+
+                for (let x = 0; x < srcTranArr.length; x++) {
+
+                    let srcTranId = srcTranArr[x];
+
+                    record.submitFields({
+                        type: 'journalentry',
+                        id: srcTranId,
+                        values: {
+                            custbody_mhi_koa_beverage_sales_inv: invoiceRecId,
+                            custbody_mhi_koa_beverage_sales_bill: vbRecId
+                        }
+                    });
+                }
             }
         }
 
@@ -1531,6 +2002,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                     if (params.countSuccess > 0 && params.countFailed == 0) {
 
                         runHistRecObj.setValue('custrecord_mhi_koa_runhist_status', 1); //Success
+                        runHistRecObj.setValue('custrecord_mhi_koa_runhist_fail_detail', ''); //Success
                         
                     } else if (params.countSuccess > 0 && params.countFailed > 0) {
 
@@ -1566,6 +2038,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             handleUC1_GiftCardRedemptionICJE,
             handleUC3_RewardsRedemptionICJE,
             handleUC4_handleDonationICJE,
+            handleUC6_handleBeverageSalesInvBillPair,
             handleTDD2UC2_RewardsRedemptionICJE,
             createOrUpdateRunHistory
         }

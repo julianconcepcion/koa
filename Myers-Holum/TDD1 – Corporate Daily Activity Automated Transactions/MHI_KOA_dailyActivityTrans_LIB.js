@@ -2003,7 +2003,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                             let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
                             //Get total amount
-                            let amt = getValue(tranLine, 'amount', false);
+                            let amt = getValue(tranLine, 'formulacurrency', false);
                                 amt = (amt) ? parseFloat(amt) : 0.00;
 
                             totalAmt = totalAmt + amt;
@@ -2136,7 +2136,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                             //Get total amount
                             cpgId = getValue(tranLine, 'line.cseg_koa_cpg', false);
                             deptId = getValue(tranLine, 'departmentnohierarchy', false);
-                            let amt = getValue(tranLine, 'amount', false);
+                            let amt = getValue(tranLine, 'formulacurrency', false);
                                 amt = (amt) ? parseFloat(amt) : 0.00;
 
                             totalAmt = totalAmt + amt;

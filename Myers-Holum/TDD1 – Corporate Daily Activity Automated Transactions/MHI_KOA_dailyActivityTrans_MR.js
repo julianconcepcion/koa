@@ -139,7 +139,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                     //Special requirement added from TDD2
                     if (configObj.boolActive_TDD2_UC2) {
                         
-                        let tdd2UC2SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['TDD_UC2']);
+                        /* let tdd2UC2SearchId = CURR_SCRIPT_OBJ.getParameter(SEARCH_PARAM_MAPPING['TDD_UC2']);
                         if (tdd2UC2SearchId) {
                             
                             log.debug('Get Input - TDD2 UC2 Search ID', tdd2UC2SearchId);
@@ -149,7 +149,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         } else {
 
                             log.error('No TDD 2 UC2 Search ID Found');
-                        }
+                        } */
                     }
 
                     log.audit('Get Input - All UC Search Result Count', ucSeachResultArr.length);
@@ -277,7 +277,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                     let firstIndex = JSON.parse(reduceValues[0]); 
                     let firstIndexTranLine = JSON.parse(firstIndex.tranLine);
 
-                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == 6 || firstIndexTranLine.ucNum == 7 || firstIndexTranLine.ucNum == '2_2') {
+                    if (firstIndexTranLine.ucNum == 1 || firstIndexTranLine.ucNum == 3 || firstIndexTranLine.ucNum == 4 || firstIndexTranLine.ucNum == 6 || firstIndexTranLine.ucNum == 7/*  || firstIndexTranLine.ucNum == '2_2' */) {
                         
                         let fromSub = LIB.getValue(firstIndexTranLine, 'subsidiarynohierarchy', true);
                         let campGround = LIB.getValue(firstIndexTranLine, 'line.cseg_koa_cpg', true);
@@ -298,7 +298,7 @@ define(['N/runtime', './MHI_KOA_dailyActivityTrans_LIB.js'],
                         } else if (firstIndexTranLine.ucNum == 7) {
                             result = LIB.handleUC7_handleConcessionFeeInvBillPair(reduceKey, reduceValues, mrTaskId);
                         } else if (firstIndexTranLine.ucNum == '2_2') {
-                            result = LIB.handleTDD2UC2_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId);
+                            /* result = LIB.handleTDD2UC2_RewardsRedemptionICJE(reduceKey, reduceValues, mrTaskId); */
                         }
 
                         if (result.status == 'Success') {

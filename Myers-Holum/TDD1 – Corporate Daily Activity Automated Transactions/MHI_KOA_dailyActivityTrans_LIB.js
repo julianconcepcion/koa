@@ -488,7 +488,7 @@ define(['N/search', 'N/record', 'N/runtime'],
 
                 //Get total amount
                 let amt = getValue(tranLine, 'amount', false);
-                    amt = (amt) ? parseFloat(amt) : 0.00;
+                    amt = (amt) ? Math.abs(parseFloat(amt)) : 0.00;
 
                 totalAmt = totalAmt + amt;
 
@@ -552,6 +552,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
+                                    jeHeader.memo = 'Gift Card Redemptions IC Journal';
                                     
                                 //Define JE line data
                                 let jeLinesArr = [
@@ -796,6 +797,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
+                                    jeHeader.memo = 'Rewards Redemptions IC Journal';
                                  
                                 //Define JE line data
                                 let jeLinesArr = [
@@ -1032,6 +1034,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                                     jeHeader.custbody_mhi_koa_run_id = mrTaskId;
                                     jeHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                                     jeHeader.custbody_mhi_koa_run_hist = runHistId;
+                                    jeHeader.memo = 'Donation Roundups & Fundraisers IC Journal';
                                     
                                 //Define JE line data
                                 let jeLinesArr = [
@@ -1170,6 +1173,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             let configObj = CONFIG.configObj;
             let glSettings = CONFIG.glSettings;
 
+            let cpgId;
             let bevSubId;
             let tranDate;
             let runHistId;
@@ -1186,6 +1190,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                 let reduceValuesParsed = JSON.parse(reduceValues[x]);
                 let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
+                cpgId = getValue(tranLine, 'line.cseg_koa_cpg', false);
                 bevSubId = getValue(tranLine, 'custrecord_koa_cpg_bevco', false);
                 tranDate = getValue(tranLine, 'trandate', false);
 
@@ -1229,9 +1234,11 @@ define(['N/search', 'N/record', 'N/runtime'],
                         invoiceHeader.custbody_mhi_koa_run_id = mrTaskId;
                         invoiceHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                         invoiceHeader.custbody_mhi_koa_run_hist = runHistId;
+                        invoiceHeader.memo = 'Beverage Sales IC Invoice + IC Bill';
 
                     //Create Invoice
                     let invoiceResult = createInvoice(invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId, 6);
+                    let invoiceTranId = getInvoiceTranId(invoiceResult.invoiceRecId);
 
                     //Define Vendor Bill header data
                     let vbHeader = {};
@@ -1241,6 +1248,9 @@ define(['N/search', 'N/record', 'N/runtime'],
                         vbHeader.custbody_mhi_koa_run_id = mrTaskId;
                         vbHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                         vbHeader.custbody_mhi_koa_run_hist = runHistId;
+                        vbHeader.cseg_koa_cpg = cpgId;
+                        vbHeader.memo = 'Beverage Sales IC Invoice + IC Bill';
+                        vbHeader.tranid = invoiceTranId;
                         
                     //Create Vendor Bill
                     let vbResult = createVendorBill(vbHeader, reduceValues, ucGLsettings, existingVbId, 6);
@@ -1327,6 +1337,7 @@ define(['N/search', 'N/record', 'N/runtime'],
             let configObj = CONFIG.configObj;
             let glSettings = CONFIG.glSettings;
 
+            let cpgId;
             let bevSubId;
             let tranDate;
             let runHistId;
@@ -1343,6 +1354,7 @@ define(['N/search', 'N/record', 'N/runtime'],
                 let reduceValuesParsed = JSON.parse(reduceValues[x]);
                 let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
+                cpgId = getValue(tranLine, 'line.cseg_koa_cpg', false);
                 bevSubId = getValue(tranLine, 'custrecord_koa_cpg_bevco', false);
                 tranDate = getValue(tranLine, 'trandate', false);
 
@@ -1386,9 +1398,11 @@ define(['N/search', 'N/record', 'N/runtime'],
                         invoiceHeader.custbody_mhi_koa_run_id = mrTaskId;
                         invoiceHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                         invoiceHeader.custbody_mhi_koa_run_hist = runHistId;
+                        invoiceHeader.memo = 'KOA Beverage Concession Fee IC Invoice + IC Bill';
 
                     //Create Invoice
                     let invoiceResult = createInvoice(invoiceHeader, reduceValues, ucGLsettings, existingInvoiceId, 7);
+                    let invoiceTranId = getInvoiceTranId(invoiceResult.invoiceRecId);
 
                     //Define Vendor Bill header data
                     let vbHeader = {};
@@ -1398,7 +1412,10 @@ define(['N/search', 'N/record', 'N/runtime'],
                         vbHeader.custbody_mhi_koa_run_id = mrTaskId;
                         vbHeader.custbody_mhi_koa_parent_txn = srcTranArr;
                         vbHeader.custbody_mhi_koa_run_hist = runHistId;
-                        
+                        vbHeader.cseg_koa_cpg = cpgId;
+                        vbHeader.memo = 'KOA Beverage Concession Fee IC Invoice + IC Bill';
+                        vbHeader.tranid = invoiceTranId;
+
                     //Create Vendor Bill
                     let vbResult = createVendorBill(vbHeader, reduceValues, ucGLsettings, existingVbId, 7);
 
@@ -1814,6 +1831,30 @@ define(['N/search', 'N/record', 'N/runtime'],
         }
 
         /**
+         * Function to lookup the Document Number (tranid) of an invoice
+         * @param {Number} invoiceId - invoice internal id
+         *
+         * @returns {String} invoice tranid
+         */
+        const getInvoiceTranId = (invoiceId) => {
+
+            let invoiceTranId;
+
+            if (invoiceId) {
+
+                let invoiceLookup = search.lookupFields({
+                    type: search.Type.INVOICE,
+                    id: invoiceId,
+                    columns: ['tranid']
+                });
+
+                invoiceTranId = invoiceLookup.tranid;
+            }
+
+            return invoiceTranId;
+        }
+
+        /**
          * Function to create Journal Entry record
          * @param {Object} jeHeader - Object containing the header values for the JE
          * @param {Array} jeLinesArr - Array of objects containing the line values for the JE
@@ -2061,6 +2102,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                             let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
                             let accountId = getValue(tranLine, 'account', false);
+                            let cpgId = getValue(tranLine, 'line.cseg_koa_cpg', false);
+                            let deptId = getValue(tranLine, 'departmentnohierarchy', false);
                             let amt = getValue(tranLine, 'amount', false);
                                 amt = (amt) ? parseFloat(amt) : 0.00;
 
@@ -2069,26 +2112,21 @@ define(['N/search', 'N/record', 'N/runtime'],
                             let destCpgId = mappedGLsettings.destCpgId;
                             let destDeptId = mappedGLsettings.destDeptId;
 
-                            if (destCpgId) {
-                                
-                                vbRecObj.selectNewLine({sublistId: 'expense'});
-                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
-                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: amt});
-                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
-                                vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: destCpgId});
-                                if (destDeptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: destDeptId});
+                            vbRecObj.selectNewLine({sublistId: 'expense'});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: amt});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
+                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: cpgId});
+                            if (deptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: deptId});
 
-                                vbRecObj.commitLine({sublistId: 'expense'});
-                                
-                            } else {
-
-                                throw new Error('Vendor Bill creation failed. Missing Default Campground.');
-                            }
+                            vbRecObj.commitLine({sublistId: 'expense'});
                         }
 
                     } else if (ucNum == 7) {
 
                         let totalAmt = 0.00;
+                        let cpgId;
+                        let deptId;
 
                         for (let x = 0; x < reduceValues.length; x++) {
                             
@@ -2096,6 +2134,8 @@ define(['N/search', 'N/record', 'N/runtime'],
                             let tranLine = JSON.parse(reduceValuesParsed.tranLine);
 
                             //Get total amount
+                            cpgId = getValue(tranLine, 'line.cseg_koa_cpg', false);
+                            deptId = getValue(tranLine, 'departmentnohierarchy', false);
                             let amt = getValue(tranLine, 'amount', false);
                                 amt = (amt) ? parseFloat(amt) : 0.00;
 
@@ -2111,21 +2151,14 @@ define(['N/search', 'N/record', 'N/runtime'],
                         let destCpgId = mappedGLsettings.destCpgId;
                         let destDeptId = mappedGLsettings.destDeptId;
 
-                        if (accountId && destCpgId) {
-                            
-                            vbRecObj.selectNewLine({sublistId: 'expense'});
-                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
-                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: totalAmt});
-                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
-                            vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: destCpgId});
-                            if (destDeptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: destDeptId});
+                        vbRecObj.selectNewLine({sublistId: 'expense'});
+                        vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'account', value: accountId});
+                        vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'amount', value: totalAmt});
+                        vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'memo', value: 'Reimbursement for Beverage Sales'});
+                        vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'cseg_koa_cpg', value: cpgId});
+                        if (deptId) vbRecObj.setCurrentSublistValue({sublistId: 'expense', fieldId: 'department', value: deptId});
 
-                            vbRecObj.commitLine({sublistId: 'expense'});
-                            
-                        } else {
-
-                            throw new Error('Vendor Bill creation failed. Missing Default Expense Item and Campground.');
-                        }
+                        vbRecObj.commitLine({sublistId: 'expense'});
                     }
 
                     vbRecId = vbRecObj.save({ignoreMandatoryFields: true});
